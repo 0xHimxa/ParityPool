@@ -3,16 +3,13 @@ pragma solidity ^0.8.19;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
-*Note this code is not tightly pegged to eth yet will fixed that
+ *Note this code is not tightly pegged to eth yet will fixed that
  */
 
-
-
-
-contract StableToken is ERC20 {
+contract StableToken is ERC20, Ownable {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -36,7 +33,7 @@ contract StableToken is ERC20 {
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
-    constructor() ERC20("FortuneFlip", "Flip") {}
+    constructor() ERC20("FortuneFlip", "Flip") Ownable(msg.sender) {}
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -73,7 +70,7 @@ contract StableToken is ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     // Mints tokens to the specified user based on ETH sent
-    function buyToken(address to) external payable ethAmountAndAddressChecks {
+    function buyToken(address to) external payable ethAmountAndAddressChecks returns (bool) {
         if (to == address(0)) {
             revert StableToken__UserBuyingAddressCantBeZero();
         }
@@ -82,6 +79,8 @@ contract StableToken is ERC20 {
 
         // Mint tokens to the user
         super._mint(to, _amountWorth);
+
+        return true;
     }
 
     /**
@@ -121,9 +120,7 @@ contract StableToken is ERC20 {
 
     // Converts ETH amount to token amount using Chainlink ETH/USD price feed
     function _getAndConvertEthPrice(uint256 ethAmount) internal view returns (uint256 _amountWorth) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
 
         (, int256 price,,,) = priceFeed.latestRoundData();
 
@@ -133,9 +130,7 @@ contract StableToken is ERC20 {
 
     // Converts token amount back to ETH based on Chainlink price feed
     function _convertUSDToEth(uint256 _amountWorth) internal view returns (uint256 ethAmount) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
 
         (, int256 price,,,) = priceFeed.latestRoundData();
 
