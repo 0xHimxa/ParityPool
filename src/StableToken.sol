@@ -1,7 +1,16 @@
-//SPDX-Lincense-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
+
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+
+
+/**
+*Note this code is not tightly pegged to eth yet will fixed that
+ */
+
+
+
 
 contract StableToken is ERC20 {
     /*//////////////////////////////////////////////////////////////
@@ -11,15 +20,18 @@ contract StableToken is ERC20 {
     error StableToken__EthAmountCantBeZero();
     error StableToken__BalanceIsZero();
     error StableToken__InsufficientBalance();
+    error StableToken__NoEnoughLiquidity();
+    error StableToken__FailedToTransferEth();
+    error StableToken__UserSellingAddressCantBeZero();
 
     /*//////////////////////////////////////////////////////////////
                            CONSTANT VARIABLES
     //////////////////////////////////////////////////////////////*/
     // Used to scale Chainlink ETH price (price feed decimals adjustment)
-    uint256 private constant PRICISSION = 1e10;
+    uint256 private constant PRECISION = 1e10;
 
     // Used to normalize ETH amount to 18 decimals
-    uint256 private constant PRICE_PRICISSION = 1e18;
+    uint256 private constant PRICE_PRECISION = 1e18;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -30,26 +42,26 @@ contract StableToken is ERC20 {
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    // Ensures user address is valid and provided amount is not zero
-    modifier ethAmountAndAddressCheckes(address user, uint256 _ethAmount) {
-        if (user == address(0)) {
+    // Ensures msg.sender is valid and ETH sent is non-zero
+    modifier ethAmountAndAddressChecks() {
+        if (msg.sender == address(0)) {
             revert StableToken__UserBuyingAddressCantBeZero();
         }
 
-        if (_ethAmount == 0) {
+        if (msg.value == 0) {
             revert StableToken__EthAmountCantBeZero();
         }
 
         _;
     }
 
-    // Ensures the user has enough token balance
-    modifier checkBalanceOfUser(address user, uint256 _amount) {
-        if (balanceOf(user) == 0) {
+    // Ensures the user has enough token balance for sell
+    modifier checkBalanceOfUser(uint256 _amount) {
+        if (balanceOf(msg.sender) == 0) {
             revert StableToken__BalanceIsZero();
         }
 
-        if (balanceOf(user) < _amount) {
+        if (balanceOf(msg.sender) < _amount) {
             revert StableToken__InsufficientBalance();
         }
 
@@ -60,26 +72,45 @@ contract StableToken is ERC20 {
                           EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // Mints tokens to the user based on ETH amount value
-    function buyToken(address user, uint256 ethAmount) external ethAmountAndAddressCheckes(user, ethAmount) {
-        uint256 _amountWorth = _getandConrvetEthPrice(ethAmount);
+    // Mints tokens to the specified user based on ETH sent
+    function buyToken(address to) external payable ethAmountAndAddressChecks {
+        if (to == address(0)) {
+            revert StableToken__UserBuyingAddressCantBeZero();
+        }
 
-        super._mint(user, _amountWorth);
+        uint256 _amountWorth = _getAndConvertEthPrice(msg.value);
+
+        // Mint tokens to the user
+        super._mint(to, _amountWorth);
     }
 
     /**
-     * @dev Caller must:
+     * @dev Sell tokens back to the contract for ETH.
+     * Caller must:
      * - own the tokens
      * - have approved this contract to spend them
      */
-    function sellToken(address caller, uint256 amount)
-        external
-        ethAmountAndAddressCheckes(caller, amount)
-        checkBalanceOfUser(caller, amount)
-        returns (bool)
-    {
-        // Burns the specified amount of tokens
-        _burn(caller, amount);
+    function sellToken(address to, uint256 amount) external checkBalanceOfUser(amount) returns (bool) {
+        if (to == address(0)) {
+            revert StableToken__UserSellingAddressCantBeZero();
+        }
+
+        // Calculate the ETH amount to send for the given token amount
+        uint256 ethWorth = _convertUSDToEth(amount);
+
+        // Check that the contract has enough ETH to pay
+        if (address(this).balance < ethWorth) {
+            revert StableToken__NoEnoughLiquidity();
+        }
+
+        // Burn the tokens from the caller
+        _burn(msg.sender, amount);
+
+        // Send ETH to the user
+        (bool success,) = payable(to).call{value: ethWorth}("");
+        if (!success) {
+            revert StableToken__FailedToTransferEth();
+        }
 
         return true;
     }
@@ -89,11 +120,26 @@ contract StableToken is ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     // Converts ETH amount to token amount using Chainlink ETH/USD price feed
-    function _getandConrvetEthPrice(uint256 ethAmount) internal view returns (uint256 _amountWorth) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+    function _getAndConvertEthPrice(uint256 ethAmount) internal view returns (uint256 _amountWorth) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            0x694AA1769357215DE4FAC081bf1f309aDC325306
+        );
 
         (, int256 price,,,) = priceFeed.latestRoundData();
 
-        _amountWorth = ((uint256(price) * PRICISSION) * ethAmount) / PRICE_PRICISSION;
+        // Token amount = ETH price * ETH sent, scaled
+        _amountWorth = ((uint256(price) * PRECISION) * ethAmount) / PRICE_PRECISION;
+    }
+
+    // Converts token amount back to ETH based on Chainlink price feed
+    function _convertUSDToEth(uint256 _amountWorth) internal view returns (uint256 ethAmount) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            0x694AA1769357215DE4FAC081bf1f309aDC325306
+        );
+
+        (, int256 price,,,) = priceFeed.latestRoundData();
+
+        // ETH amount = token USD value divided by ETH price
+        ethAmount = (_amountWorth * PRICE_PRECISION) / (uint256(price) * PRECISION);
     }
 }
