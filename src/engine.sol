@@ -12,6 +12,8 @@ contract RaffileEngine {
   error RaffileEngine__FailedToSellToken();
   error RaffileEngine__BuyRaffleTokenToJoin();
   error RaffileEngine__InsufficientBalanceToJoin();
+  error RaffileEngine__InsufficientTokenToBuyTicket();
+
 
     event userBuyToken(address indexed user, uint256 indexed amount);
     event userSellToken(address indexed user, uint256 indexed amount);
@@ -20,10 +22,58 @@ contract RaffileEngine {
     uint256  immutable rafileTikenPrice;
     address[] raffile_Players;
 
+
+uint256 public raffleId;
+uint256 public entranceFee = 5e18;
+mapping(address => uint256) public ticketBalance; 
+mapping(uint256 => mapping(address => uint256)) public ticketsUsedInRound;
+mapping(uint256 => address[]) public roundPlayers;
+
+
+
+
+
     constructor(address _stableTokenAddress,uint256 _rafileTikenPrice) {
         stableToken = StableToken(_stableTokenAddress);
         rafileTikenPrice = _rafileTikenPrice;
     }
+
+
+
+
+
+
+function buyTickets(uint256 tokenAmount) external {
+        uint256 userTokenBalance = stableToken.balanceOf(msg.sender);
+    if (userTokenBalance == 0) {
+        revert RaffileEngine__BuyRaffleTokenToJoin();
+    }
+    if (userTokenBalance < tokenAmount) {
+        revert RaffileEngine__InsufficientBalanceToJoin();
+    }
+
+
+    uint256 tickets = tokenAmount / entranceFee;
+    require(tickets > 0, "Not enough tokens");
+
+    if(tickets == 0){
+        revert RaffileEngine__InsufficientTokenToBuyTicket();
+    }
+
+    stableToken.transferFrom(
+        msg.sender,
+        address(this),
+        tickets * entranceFee
+    );
+
+    ticketBalance[msg.sender] += tickets;
+}
+
+
+
+
+
+
 
     function buyRaffileToken() external payable {
         if (msg.value == 0) {
@@ -65,9 +115,9 @@ contract RaffileEngine {
             revert RaffileEngine__InsufficientBalanceToJoin();
         }
 
-        stableToken.transferFrom(msg.sender, address(this), value);
+        stableToken.transferFrom(msg.sender, address(this), amount);
         raffile_Players.push(msg.sender);
-        emit 
+       // emit 
 
 
 
