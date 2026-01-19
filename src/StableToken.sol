@@ -45,10 +45,7 @@ contract StableToken is ERC20, Ownable {
 
     // Ensures msg.sender is valid and ETH sent is non-zero
     modifier ethAmountAndAddressChecks() {
-        if (msg.sender == address(0)) {
-            revert StableToken__UserBuyingAddressCantBeZero();
-        }
-
+       
         if (msg.value == 0) {
             revert StableToken__EthAmountCantBeZero();
         }
