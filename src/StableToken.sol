@@ -31,7 +31,7 @@ contract StableToken is ERC20, Ownable {
     uint256 private constant PRICE_PRECISION = 1e18;
 
     uint256 private constant buy_fee = 10;
-    uint256 private constant fee_pricision =100;
+    uint256 private constant fee_pricision = 100;
     uint256 private constant sell_fee = 15;
 
     /*//////////////////////////////////////////////////////////////
@@ -45,7 +45,6 @@ contract StableToken is ERC20, Ownable {
 
     // Ensures msg.sender is valid and ETH sent is non-zero
     modifier ethAmountAndAddressChecks() {
-       
         if (msg.value == 0) {
             revert StableToken__EthAmountCantBeZero();
         }
@@ -77,8 +76,8 @@ contract StableToken is ERC20, Ownable {
         }
 
         uint256 _amountWorth = _getAndConvertEthPrice(msg.value);
-      uint256 amountMinintfeeRemoved = (_amountWorth * buy_fee)/fee_pricision;
-      uint256 amount = _amountWorth - amountMinintfeeRemoved;
+        uint256 amountMinintfeeRemoved = (_amountWorth * buy_fee) / fee_pricision;
+        uint256 amount = _amountWorth - amountMinintfeeRemoved;
 
         // Mint tokens to the user
         super._mint(to, amount);
@@ -100,9 +99,8 @@ contract StableToken is ERC20, Ownable {
         // Calculate the ETH amount to send for the given token amount
         uint256 ethWorth = _convertUSDToEth(amount);
 
-        uint256 fee = (ethWorth * sell_fee)/fee_pricision;
+        uint256 fee = (ethWorth * sell_fee) / fee_pricision;
         uint256 ethWorthSellfeeRemoved = ethWorth - fee;
-
 
         // Check that the contract has enough ETH to pay
         if (address(this).balance < ethWorthSellfeeRemoved) {
