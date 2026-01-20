@@ -46,7 +46,7 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
     event UserSellToken(address indexed user, uint256 amount);
     event UserBuyTickets(address indexed user, uint256 amount);
     event UserEnterRaffle(address indexed user, uint256 amount);
-    event RewardWinnerPicked(uint256 indexed roundId, address indexed winner);
+    event RoundWinnerPicked(uint256 indexed roundId, address indexed winner);
     event RewardClaimed(address indexed winner, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
@@ -272,7 +272,7 @@ uint256 random = randomWords[0];
                 left = mid + 1;
             } else {
                 roundWinner[raffleId] = r.owner;
-                emit RewardWinnerPicked(raffleId, r.owner);
+                emit RoundWinnerPicked(raffleId, r.owner);
 
                 _resetRaffleRound();
                 return;
