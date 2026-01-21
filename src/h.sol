@@ -32,6 +32,6 @@ contract resuse {
     //   function topUpSubscription(
     //     uint256 amount
     //   ) external {
-    //     LINKTOKEN.transferAndCall(address(s_vrfCoordinator), amount, abi.encode(s_subscriptionId));
+     //  LINKTOKEN.transferAndCall(address(s_vrfCoordinator), amount, abi.encode(s_subscriptionId));
     //   }
 }
