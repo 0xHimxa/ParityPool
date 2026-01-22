@@ -33,11 +33,14 @@ contract StableToken is ERC20, Ownable {
     uint256 private constant buy_fee = 10;
     uint256 private constant fee_pricision = 100;
     uint256 private constant sell_fee = 15;
+    address private immutable feeAddress;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
-    constructor() ERC20("FortuneFlip", "Flip") Ownable(msg.sender) {}
+    constructor(address _feedaddress) ERC20("FortuneFlip", "Flip") Ownable(msg.sender) {
+        feeAddress = _feedaddress;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -75,7 +78,7 @@ contract StableToken is ERC20, Ownable {
             revert StableToken__UserBuyingAddressCantBeZero();
         }
 
-        uint256 _amountWorth = _getAndConvertEthPrice(msg.value);
+        uint256 _amountWorth = getAndConvertEthPrice(msg.value);
         uint256 amountMinintfeeRemoved = (_amountWorth * buy_fee) / fee_pricision;
         uint256 amount = _amountWorth - amountMinintfeeRemoved;
 
@@ -97,7 +100,7 @@ contract StableToken is ERC20, Ownable {
         }
 
         // Calculate the ETH amount to send for the given token amount
-        uint256 ethWorth = _convertUSDToEth(amount);
+        uint256 ethWorth = convertUSDToEth(amount);
 
         uint256 fee = (ethWorth * sell_fee) / fee_pricision;
         uint256 ethWorthSellfeeRemoved = ethWorth - fee;
@@ -124,8 +127,8 @@ contract StableToken is ERC20, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     // Converts ETH amount to token amount using Chainlink ETH/USD price feed
-    function _getAndConvertEthPrice(uint256 ethAmount) internal view returns (uint256 _amountWorth) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+    function getAndConvertEthPrice(uint256 ethAmount) public view returns (uint256 _amountWorth) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(feeAddress);
 
         (, int256 price,,,) = priceFeed.latestRoundData();
 
@@ -134,12 +137,33 @@ contract StableToken is ERC20, Ownable {
     }
 
     // Converts token amount back to ETH based on Chainlink price feed
-    function _convertUSDToEth(uint256 _amountWorth) internal view returns (uint256 ethAmount) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+    function convertUSDToEth(uint256 _amountWorth) public view returns (uint256 ethAmount) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(feeAddress);
 
         (, int256 price,,,) = priceFeed.latestRoundData();
 
         // ETH amount = token USD value divided by ETH price
         ethAmount = (_amountWorth * PRICE_PRECISION) / (uint256(price) * PRECISION);
     }
+
+
+    function getPrecision() external pure returns (uint256) {
+        return PRECISION;
+    }
+    function getPricePrecision() external pure returns (uint256) {
+        return PRICE_PRECISION;
+    }
+    function getBuyFee() external pure returns (uint256) {
+        return buy_fee;
+    }
+    function getSellFee() external pure returns (uint256) {
+        return sell_fee;
+    }
+    function getFeePrecision() external pure returns (uint256) {
+        return fee_pricision;
+    }
+    function getFeeAddress() external view returns (address) {
+        return feeAddress;
+    }
+
 }

@@ -4,6 +4,8 @@ pragma solidity ^0.8.19;
 import {Script, console} from "forge-std/Script.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {MockLinkToken} from "@chainlink/contracts/src/v0.8/mocks/MockLinkToken.sol";
+import {MockV3Aggregator} from "test/priceMock.sol";
+
 
 contract EngineConfig is Script {
     error EngineConfig__NetworkNotSupport();
@@ -16,12 +18,15 @@ contract EngineConfig is Script {
     uint96 constant gasPrice = 1e9; // 1 gwei
     int256 constant weiPerUnitLink = 4e15;
     address user = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    uint8 private constant decimal = 8;
+    int256 private constant price = 3000e8;
 
     struct EngineParams {
         address vrfCoordnator;
         bytes32 keyHash;
         address linkToken;
         uint256 subId;
+        address priceFeed;
     }
     EngineParams localConfig;
 
@@ -40,7 +45,8 @@ contract EngineConfig is Script {
             vrfCoordnator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
-            subId: 0
+            subId: 0,
+            priceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306
         });
     }
 
@@ -54,11 +60,14 @@ contract EngineConfig is Script {
         VRFCoordinatorV2_5Mock vrf = new VRFCoordinatorV2_5Mock(baseFee, gasPrice, weiPerUnitLink);
 
         MockLinkToken link = new MockLinkToken();
+        MockV3Aggregator priceFeed = new MockV3Aggregator(decimal, price);
+
+        
 
         vm.stopBroadcast();
 
         localConfig =
-            EngineParams({vrfCoordnator: address(vrf), keyHash: bytes32(0), linkToken: address(link), subId: 0});
+            EngineParams({vrfCoordnator: address(vrf), keyHash: bytes32(0), linkToken: address(link), subId: 0, priceFeed: address(priceFeed)});
 
         return localConfig;
     }
