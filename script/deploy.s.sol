@@ -9,48 +9,82 @@ import {EngineConfig} from "./config.s.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract DeployEngine is Script {
+    /*//////////////////////////////////////////////////////////////
+                                STATE
+    //////////////////////////////////////////////////////////////*/
+
     uint256 subId;
 
+    // LINK token interface (used for funding VRF subscriptions on live networks)
     LinkTokenInterface LINKTOKEN;
-    address user =  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    uint256 linkFunding = 3 ether; 
+
+    // Default Anvil/Foundry deployer address
+    address user = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
+    // Amount of LINK to fund the VRF subscription
+    uint256 linkFunding = 3 ether;
+
+    /*//////////////////////////////////////////////////////////////
+                                RUN
+    //////////////////////////////////////////////////////////////*/
 
     function run() public {
+        // Load network-specific configuration
         EngineConfig config = new EngineConfig();
         EngineConfig.EngineParams memory params = config.getNetworkConfig();
 
+        // Begin broadcasting transactions from the deployer address
         vm.startBroadcast(user);
 
+        /*//////////////////////////////////////////////////////////////
+                        VRF SUBSCRIPTION SETUP
+        //////////////////////////////////////////////////////////////*/
 
-
+        // If no subscription exists, create a new one
         if (params.subId == 0) {
-            console.log(params.subId, "here");
-vm.roll(1);// Add this line to prevent underflow in simulation
+            console.log(params.subId, "existing subId");
+
+            // Prevent underflow in local chain simulations
+            vm.roll(1);
+
+            // Create a new VRF subscription
             params.subId = VRFCoordinatorV2_5Mock(params.vrfCoordnator).createSubscription();
-            console.log(params.subId, "created");
+
+            console.log(params.subId, "new subscription created");
         }
 
+        /*//////////////////////////////////////////////////////////////
+                        CONTRACT DEPLOYMENT
+        //////////////////////////////////////////////////////////////*/
 
+        // Deploy the StableToken contract
         StableToken stableToken = new StableToken();
+
+        // Deploy the RaffleEngine with required dependencies
         RaffileEngine engine = new RaffileEngine(
             address(stableToken), params.vrfCoordnator, params.keyHash, params.linkToken, params.subId
         );
 
+        // Transfer StableToken ownership to the engine
         stableToken.transferOwnership(address(engine));
 
+        // Register the engine as a consumer of the VRF subscription
         VRFCoordinatorV2_5Mock(params.vrfCoordnator).addConsumer(params.subId, address(engine));
 
+        /*//////////////////////////////////////////////////////////////
+                        VRF FUNDING LOGIC
+        //////////////////////////////////////////////////////////////*/
 
-if(block.chainid == 31337){
-        VRFCoordinatorV2_5Mock(params.vrfCoordnator).fundSubscription(params.subId, linkFunding);
-}
-else if(block.chainid == 11155111){
-LinkTokenInterface(params.linkToken).transferAndCall(params.vrfCoordnator, linkFunding, abi.encode(params.subId));
-    
-}
+        if (block.chainid == 31337) {
+            // Local Anvil chain: fund subscription directly via mock
+            VRFCoordinatorV2_5Mock(params.vrfCoordnator).fundSubscription(params.subId, linkFunding);
+        } else if (block.chainid == 11155111) {
+            // Sepolia: fund subscription via LINK token transferAndCall
+            LinkTokenInterface(params.linkToken)
+                .transferAndCall(params.vrfCoordnator, linkFunding, abi.encode(params.subId));
+        }
 
+        // Stop broadcasting transactions
         vm.stopBroadcast();
-
     }
 }
-

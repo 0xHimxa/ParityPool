@@ -15,8 +15,7 @@ contract EngineConfig is Script {
     uint96 constant baseFee = 0.25 ether; // 0.25 LINK
     uint96 constant gasPrice = 1e9; // 1 gwei
     int256 constant weiPerUnitLink = 4e15;
-    address user =  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    
+    address user = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     struct EngineParams {
         address vrfCoordnator;
@@ -56,9 +55,8 @@ contract EngineConfig is Script {
 
         MockLinkToken link = new MockLinkToken();
 
-
         vm.stopBroadcast();
-//bbnnn
+
         localConfig =
             EngineParams({vrfCoordnator: address(vrf), keyHash: bytes32(0), linkToken: address(link), subId: 0});
 
