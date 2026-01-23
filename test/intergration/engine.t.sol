@@ -10,6 +10,7 @@ import {DeployEngine} from "script/deploy.s.sol";
 contract TestStabeleToken is Test {
 
     event UserBuyToken(address indexed user, uint256 amount);
+    event UserSellToken(address indexed user, uint256 amount);
 
 
 
@@ -107,6 +108,48 @@ emit UserBuyToken(user, buyAmount);
 engine.buyRaffileToken{value: buyAmount}();
 vm.stopPrank();
 
+}
+
+
+
+function testRaffileTokenRevertBalancezero() external{
+
+vm.prank(user);
+vm.expectRevert(RaffileEngine.RaffileEngine__RaffileTokenBalanceIsZero.selector);
+
+engine.sellRaffileToken(buyAmount);
+ 
+
+
+
+}
+
+function testRaffilesellTokenRevrInsufficientBalance() external{
+vm.prank(user);
+engine.buyRaffileToken{value: buyAmount}();
+
+vm.prank(user);
+vm.expectRevert(RaffileEngine.RaffileEngine__InsufficientBalance.selector);
+
+engine.sellRaffileToken(buyAmount * 60e18);
+ 
+
+
+
+}
+
+function testRaffleSellTokenSuccess() external{
+    
+vm.startPrank(user);
+stableToken.approve(address(engine), buyAmount);
+engine.buyRaffileToken{value: buyAmount}();
+
+   
+vm.expectEmit(true, false, false, true);
+emit UserSellToken(user, buyAmount);
+engine.sellRaffileToken(buyAmount);
+
+vm.stopPrank();
 }
 
 
