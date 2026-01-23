@@ -26,7 +26,7 @@ contract TestStabeleToken is Test {
 
     // Common test amount
     uint256 buyAmount = 2 ether;
-        CallFailed callFail;
+    CallFailed callFail;
 
     /*//////////////////////////////////////////////////////////////
                                 SETUP
@@ -40,8 +40,7 @@ contract TestStabeleToken is Test {
         (_config, stableToken, eng) = deploy.run();
         config = _config;
         engAddress = address(eng);
- callFail = new CallFailed();
-
+        callFail = new CallFailed();
 
         // Fund test accounts
         vm.deal(user, 100 ether);
@@ -234,8 +233,4 @@ contract TestStabeleToken is Test {
     }
 }
 
-
-contract CallFailed {
-
-
-}
+contract CallFailed {}

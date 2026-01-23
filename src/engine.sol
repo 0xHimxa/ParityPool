@@ -48,6 +48,7 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
     event UserEnterRaffle(address indexed user, uint256 amount);
     event RoundWinnerPicked(uint256 indexed roundId, address indexed winner);
     event RewardClaimed(address indexed winner, uint256 amount);
+    event RandomWordsRequested(uint256 indexed requestId);
 
     /*//////////////////////////////////////////////////////////////
                                 ENUMS
@@ -65,7 +66,7 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
     uint256 public raffleId;
     uint256 public entranceFee = 5e18;
     uint256 public maxTicketsPerRound = 10;
-
+    uint256 public randomword;
     RaffleState public currentState;
 
     /// @notice Ticket balance per user
@@ -144,11 +145,7 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         s_subscriptionId = subId;
     }
 
-
-
-    receive() external payable {
-        
-    }
+    receive() external payable {}
 
     /*//////////////////////////////////////////////////////////////
                           TICKET PURCHASE LOGIC
@@ -239,6 +236,8 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
                 extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
             })
         );
+
+        emit RandomWordsRequested(s_requestId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -258,6 +257,8 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         internal
         override
     {
+        randomword = randomWords[0];
+
         uint256 total = roundTotalTickets[raffleId];
         if (total == 0) {
             revert RaffileEngine__NoPlayers();
@@ -377,16 +378,15 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         emit UserSellToken(msg.sender, value);
     }
 
-
-
     function getKeyHash() public view returns (bytes32) {
         return keyHash;
     }
+
     function getSubscriptionId() public view returns (uint256) {
         return s_subscriptionId;
     }
+
     function getLinkToken() public view returns (address) {
         return address(LINKTOKEN);
     }
-
 }

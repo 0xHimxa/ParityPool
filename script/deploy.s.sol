@@ -70,7 +70,7 @@ contract DeployEngine is Script {
 
         // Transfer StableToken ownership to the engine
 
-          stableToken.transferOwnership(address(engine));
+        stableToken.transferOwnership(address(engine));
 
         // Register the engine as a consumer of the VRF subscription
         VRFCoordinatorV2_5Mock(params.vrfCoordinator).addConsumer(params.subId, address(engine));
@@ -81,7 +81,7 @@ contract DeployEngine is Script {
 
         if (block.chainid == 31337) {
             // Local Anvil chain: fund subscription directly via mock
-            VRFCoordinatorV2_5Mock(params.vrfCoordinator).fundSubscription(params.subId, linkFunding);
+            VRFCoordinatorV2_5Mock(params.vrfCoordinator).fundSubscription(params.subId, 100 ether);
         } else if (block.chainid == 11155111) {
             // Sepolia: fund subscription via LINK token transferAndCall
             LinkTokenInterface(params.linkToken)
