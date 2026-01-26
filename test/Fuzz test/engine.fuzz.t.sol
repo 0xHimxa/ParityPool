@@ -43,7 +43,7 @@ contract TestStableTokenFuzz is Test {
         }
 
         vm.deal(address(engine), MAX_ETH);
-        targetContract(address(engine));
+      
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -65,7 +65,7 @@ contract TestStableTokenFuzz is Test {
         uint256 fee = (amountUsedWorth * stableToken.getBuyFee()) / stableToken.getFeePrecision();
         uint256 feeRemoved = amountUsedWorth - fee;
 
-        vm.stopPrank();
+     
 
         assertEq(actor.balance, balanceBefore - ethAmount);
         assertEq(address(stableToken).balance, ethAmount);
