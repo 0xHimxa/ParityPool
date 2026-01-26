@@ -176,7 +176,7 @@ contract TestStableTokenFuzz is Test {
 
         assertEq(engine.roundTotalTickets(engine.raffleId()), totalTickets);
         vm.startPrank(owner);
-        engine.requestRandomWords();
+        engine.performUpkeep("");
         VRFCoordinatorV2_5Mock(config.vrfCoordinator).fulfillRandomWords(uint256(engine.s_requestId()), address(engine));
         vm.stopPrank();
         address winner = engine.roundWinner(0);

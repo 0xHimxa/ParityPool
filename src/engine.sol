@@ -38,6 +38,8 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
     error RaffileEngine__RoundWinnerNotSet();
     error RaffileEngine__failedToClaimReward();
     error RaffileEngine__RewardAlreadyClaimed();
+    error RaffileEngine__NotYetPickingWinner();
+
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -64,7 +66,7 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
     StableToken public immutable stableToken;
 
     uint256 public raffleId;
-    uint256 public entranceFee = 5e18;
+    uint256 immutable public entranceFee;
     uint256 public maxTicketsPerRound = 10;
     uint256 public randomword;
     RaffleState public currentState;
@@ -94,6 +96,8 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
     uint256 public totalTicketBought;
   uint256 public totalTicketCost;
   uint256 public activeTicket;
+     uint256 private s_lastTimeStamp;
+      uint256 private immutable i_interval;
 
     ///
     //chalink vrf
@@ -138,7 +142,9 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         address vrfCordinatorAddress,
         bytes32 _keyHash,
         address _linkTokenAddress,
-        uint256 subId
+        uint256 subId,
+        uint256 _interval,
+        uint256 _entranceFee
     ) VRFConsumerBaseV2Plus(vrfCordinatorAddress) {
         stableToken = StableToken(_stableTokenAddress);
         currentState = RaffleState.Open;
@@ -147,6 +153,9 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
 
         LINKTOKEN = LinkTokenInterface(_linkTokenAddress);
         s_subscriptionId = subId;
+        s_lastTimeStamp = block.timestamp;
+        i_interval = _interval;
+        entranceFee = _entranceFee;
     }
 
     receive() external payable {}
@@ -232,9 +241,47 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         emit UserEnterRaffle(msg.sender, ticketsToUse);
     }
 
+
+
+//chain Link Automation
+
+
+    function checkUpKeep(
+        bytes memory /* callData */
+    ) public view returns (bool upKeepNeeded, bytes memory /* performData */) {
+
+      bool timeHasPassed = (block.timestamp - s_lastTimeStamp) >= i_interval;  
+      bool isOpen = currentState == RaffleState.Open;
+      bool hasBalance = address(this).balance > 0;
+      bool hasPlayers = roundTotalTickets[raffleId] > 0;
+      upKeepNeeded = timeHasPassed && isOpen && hasBalance && hasPlayers;
+
+
+return (upKeepNeeded, '');
+
+
+
+    }  
+
+
+
+
+
+
+
     // vrf function implementaion
 
-    function requestRandomWords() external onlyOwner {
+    function performUpkeep(bytes calldata /* performData */) external {
+(bool upkeepNeeded,) = checkUpKeep("");
+
+if(!upkeepNeeded) revert RaffileEngine__NotYetPickingWinner();
+
+ currentState = RaffleState.Closed;
+
+
+
+
+
         // Will revert if subscription is not set and funded.
         s_requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({

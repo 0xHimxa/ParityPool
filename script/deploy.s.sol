@@ -23,6 +23,8 @@ contract DeployEngine is Script {
 
     // Amount of LINK to fund the VRF subscription
     uint256 linkFunding = 3 ether;
+    uint256 interval = 30;
+    uint256 entranceFee = 5e18;
 
     /*//////////////////////////////////////////////////////////////
                                 RUN
@@ -37,7 +39,7 @@ contract DeployEngine is Script {
         params = config.getNetworkConfig();
 
         // Begin broadcasting transactions from the deployer address
-        vm.startBroadcast(user);
+        vm.startBroadcast(params.account);
 
         /*//////////////////////////////////////////////////////////////
                         VRF SUBSCRIPTION SETUP
@@ -65,7 +67,7 @@ contract DeployEngine is Script {
 
         // Deploy the RaffleEngine with required dependencies
         engine = new RaffileEngine(
-            address(stableToken), params.vrfCoordinator, params.keyHash, params.linkToken, params.subId
+            address(stableToken), params.vrfCoordinator, params.keyHash, params.linkToken, params.subId,interval,entranceFee
         );
 
         // Transfer StableToken ownership to the engine

@@ -224,7 +224,7 @@ contract TestStabeleToken is Test {
         //Act
         vm.recordLogs();
         vm.roll(4);
-        engine.requestRandomWords();
+        engine.performUpkeep("");
         Vm.Log[] memory enteries = vm.getRecordedLogs();
 
         bytes32 requestId = enteries[1].topics[1];
@@ -247,7 +247,7 @@ contract TestStabeleToken is Test {
         console.log(engine.ticketBalance(user));
         engine.enterRaffle(1);
 
-        engine.requestRandomWords();
+        engine.performUpkeep("");
 
         VRFCoordinatorV2_5Mock(config.vrfCoordinator).fulfillRandomWords(uint256(engine.s_requestId()), address(engine));
 
@@ -266,7 +266,7 @@ contract TestStabeleToken is Test {
 
         engine.enterRaffle(1);
 
-        engine.requestRandomWords();
+        engine.performUpkeep("");
 
         VRFCoordinatorV2_5Mock(config.vrfCoordinator).fulfillRandomWords(uint256(engine.s_requestId()), address(engine));
         uint256 amountWon = engine.roundPrizePool(0);
