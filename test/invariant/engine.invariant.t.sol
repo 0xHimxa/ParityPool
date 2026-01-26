@@ -42,13 +42,20 @@ function invariant_ticketConservation() external view  {
         total += handler.ticketBalance(handler.actors(i));
     }
 
-//console.log("engine round total tickets", engine.roundTotalTickets(engine.raffleId()));
-uint256 cost = total * engine.entranceFee();
-
 console.log(total,"total handler tickets");
 console.log( engine.activeTicket(),"engine record");
    // assertEq(cost , engine.totalTicketCost());
     assertEq(total, engine.activeTicket());
+
+}
+
+
+
+function invariant_balances() external view{
+
+assertEq(stableToken.totalSupply(), handler.mintedAmount());
+assert(address(stableToken).balance >= handler.depositedEth());
+
 
 }
 

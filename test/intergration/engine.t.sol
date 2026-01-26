@@ -142,7 +142,7 @@ contract TestStabeleToken is Test {
         console.log(engine.ticketBalance(user), "balance is here");
 
         assertEq(engine.ticketBalance(user), 3);
-        assertEq(engine.roundPrizePool(0), 15e18);
+        assertEq(engine.totalTicketCost(), 15e18);
         assertEq(engine.totalLockedTokens(), 15e18);
     }
 

@@ -30,12 +30,14 @@ contract Handler is Test {
     uint256 public ghostEngineEth;
 
     // User-level accounting
-    mapping(address => uint256) public depositedEth;
+  uint256 public depositedEth;
     mapping(address => uint256) public ticketBalance;
 mapping(address => uint256) public ticketUsed;
     // Actor tracking
     address[] public actors;
     mapping(address => bool) internal seen;
+uint256 public mintedAmount;
+
 
     /*//////////////////////////////////////////////////////////////
                                SETUP
@@ -63,36 +65,51 @@ mapping(address => uint256) public ticketUsed;
 
     /// @notice ETH → raffle token
     function buyRaffileToken(uint256 ethAmount) external {
-        ethAmount = bound(ethAmount, MIN_ETH, MAX_ETH);
-        _track(msg.sender);
+      ethAmount = bound(ethAmount, MIN_ETH, MAX_ETH);
+    _track(msg.sender);
 
-        vm.deal(msg.sender, ethAmount);
+    vm.deal(msg.sender, ethAmount);
 
-        uint256 beforeBalance = address(stableToken).balance;
-       vm.prank(msg.sender);
-        engine.buyRaffileToken{value: ethAmount}();
-        uint256 afterBalance = address(stableToken).balance;
+    // Get balance before to see exactly how many were minted
+    uint256 balBefore = stableToken.balanceOf(msg.sender);
+    
+    vm.prank(msg.sender);
+    engine.buyRaffileToken{value: ethAmount}();
+    
+    uint256 balAfter = stableToken.balanceOf(msg.sender);
+    uint256 minted = balAfter - balBefore;
 
-        ghostEngineEth += (afterBalance - beforeBalance);
-        depositedEth[msg.sender] += ethAmount;
+    depositedEth += ethAmount;
+    mintedAmount += minted; // Only add the NEWLY minted amount
     }
 
     /// @notice raffle token → ETH
     function sellRaffileToken(uint256 value) external {
-        uint256 max = depositedEth[msg.sender];
-        if (max == 0) return;
 
-        uint256 sellAmount = bound(value, 1, max);
+if(msg.sender == address(engine))return;
 
-        uint256 beforeBalance = address(stableToken).balance;
-        vm.prank(msg.sender);
-        stableToken.approve(address(engine), sellAmount);
-        vm.prank(msg.sender);
-        engine.sellRaffileToken(sellAmount);
-        uint256 afterBalance = address(stableToken).balance;
+      // Instead of trusting your ghost variable, trust the actual token balance
+    uint256 actualBalance = stableToken.balanceOf(msg.sender);
+    if (actualBalance == 0) return;
 
-        ghostEngineEth -= (beforeBalance - afterBalance);
-        depositedEth[msg.sender] -= sellAmount;
+    uint256 sellAmount = bound(value, 1, actualBalance);
+
+    vm.prank(msg.sender);
+    stableToken.approve(address(engine), sellAmount);
+    
+    vm.prank(msg.sender);
+    engine.sellRaffileToken(sellAmount);
+
+    // Update ghost state based on what was actually sold
+    mintedAmount -= sellAmount;
+
+
+
+        uint256 ethEquivalent = stableToken.convertUSDToEth(sellAmount);
+        uint256 fee = (ethEquivalent * stableToken.getSellFee()) / stableToken.getFeePrecision();
+        uint256 ethOut = ethEquivalent - fee;
+
+  depositedEth -= ethOut;
     }
 
     /// @notice raffle token → tickets
@@ -123,6 +140,8 @@ vm.prank(msg.sender);
         engine.enterRaffle(useTickets);
 
         ticketBalance[msg.sender] -= useTickets;
+        ticketUsed[msg.sender] += useTickets;
+
 
     }
 
