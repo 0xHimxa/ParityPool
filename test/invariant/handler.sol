@@ -19,7 +19,7 @@ contract Handler is Test {
 
     uint256 constant MAX_ETH = 1_000 ether;
     uint256 constant MIN_ETH = 0.01 ether;
-    uint256 constant ENTRANCE_FEE = 5 ether;
+    uint256 constant ENTRANCE_FEE = 5e18;
     uint256 constant MAX_TICKETS_PER_ROUND = 10;
 
     /*//////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ contract Handler is Test {
     // User-level accounting
     mapping(address => uint256) public depositedEth;
     mapping(address => uint256) public ticketBalance;
-
+mapping(address => uint256) public ticketUsed;
     // Actor tracking
     address[] public actors;
     mapping(address => bool) internal seen;
@@ -69,6 +69,7 @@ contract Handler is Test {
         vm.deal(msg.sender, ethAmount);
 
         uint256 beforeBalance = address(stableToken).balance;
+       vm.prank(msg.sender);
         engine.buyRaffileToken{value: ethAmount}();
         uint256 afterBalance = address(stableToken).balance;
 
@@ -84,6 +85,9 @@ contract Handler is Test {
         uint256 sellAmount = bound(value, 1, max);
 
         uint256 beforeBalance = address(stableToken).balance;
+        vm.prank(msg.sender);
+        stableToken.approve(address(engine), sellAmount);
+        vm.prank(msg.sender);
         engine.sellRaffileToken(sellAmount);
         uint256 afterBalance = address(stableToken).balance;
 
@@ -99,23 +103,27 @@ contract Handler is Test {
         tokenAmount = bound(tokenAmount, ENTRANCE_FEE, tokenBalance);
         _track(msg.sender);
 
+vm.prank(msg.sender);
         stableToken.approve(address(engine), tokenAmount);
+        vm.prank(msg.sender);
         engine.buyTickets(tokenAmount);
-
-        ticketBalance[msg.sender] += tokenAmount / ENTRANCE_FEE;
+        uint256 tickets = tokenAmount / ENTRANCE_FEE;
+        ticketBalance[msg.sender] += tickets;
     }
 
     /// @notice tickets → raffle entry (max 10 per round)
     function enterRaffle(uint256 tickets) external {
         uint256 available = ticketBalance[msg.sender];
         if (available == 0) return;
-
+       uint256 userTicketPer =  ticketUsed[msg.sender];
         uint256 useTickets = bound(tickets, 1, MAX_TICKETS_PER_ROUND);
         if (useTickets > available) return;
-
+        if((userTicketPer+ useTickets) > 10) return;
+vm.prank(msg.sender);
         engine.enterRaffle(useTickets);
 
         ticketBalance[msg.sender] -= useTickets;
+
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -10,16 +10,14 @@ import {RaffileEngine} from "src/engine.sol";
 import {StdUtils} from "forge-std/StdUtils.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Handler} from "test/invariant/handler.sol";
 
 contract InvariantsTest is StdInvariant, Test {
     StableToken stableToken;
     RaffileEngine engine;
     EngineConfig.EngineParams config;
-
-    address owner;
-    address user;
-
-    uint256 constant MAX_ETH = 1_000 ether;
+ Handler handler;
+   
 
     /*//////////////////////////////////////////////////////////////
                                 SETUP
@@ -28,13 +26,32 @@ contract InvariantsTest is StdInvariant, Test {
     function setUp() public {
         DeployEngine deploy = new DeployEngine();
         (config, stableToken, engine) = deploy.run();
-
-        owner = address(engine);
-        user = makeAddr("user");
-
-        vm.deal(user, MAX_ETH);
-        vm.deal(owner, MAX_ETH);
+          handler = new Handler(address(engine), address(stableToken));
+ targetContract(address(handler));
+     
     }
+
+
+
+
+function invariant_ticketConservation() external view  {
+    uint256 total;
+
+    for (uint256 i = 0; i < handler.actorCount(); i++) {
+      console.log(handler.ticketBalance(handler.actors(i)), "actors balance");  
+        total += handler.ticketBalance(handler.actors(i));
+    }
+
+//console.log("engine round total tickets", engine.roundTotalTickets(engine.raffleId()));
+uint256 cost = total * engine.entranceFee();
+
+console.log(total,"total handler tickets");
+console.log( engine.activeTicket(),"engine record");
+   // assertEq(cost , engine.totalTicketCost());
+    assertEq(total, engine.activeTicket());
+
+}
+
 
 
 

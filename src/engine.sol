@@ -91,7 +91,11 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
 
     /// @notice Total StableToken locked across all active rounds
     uint256 public totalLockedTokens;
+    uint256 public totalTicketBought;
+  uint256 public totalTicketCost;
+  uint256 public activeTicket;
 
+    ///
     //chalink vrf
 
     LinkTokenInterface LINKTOKEN;
@@ -174,8 +178,11 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         if (!success) {
             revert RaffileEngine__FailedToBuyTicket();
         }
-        roundPrizePool[raffleId] += cost;
+        //roundPrizePool[raffleId] += cost;
+        totalTicketBought += tickets;
+        totalTicketCost += cost;
         totalLockedTokens += cost;
+  activeTicket += tickets;
 
         emit UserBuyTickets(msg.sender, tickets);
     }
@@ -213,6 +220,9 @@ contract RaffileEngine is VRFConsumerBaseV2Plus {
         // Assign ticket range
         uint256 start = roundTotalTickets[raffleId] + 1;
         uint256 end = start + ticketsToUse - 1;
+        roundPrizePool[raffleId] += ticketsToUse * entranceFee;
+        activeTicket -= ticketsToUse;
+
 
         roundRanges[raffleId].push(TicketRange({start: start, end: end, owner: msg.sender}));
 
